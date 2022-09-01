@@ -15,7 +15,7 @@ import (
 func Watch(path string, ignore []string, files chan data.SyncFile) {
 	ch := make(chan notify.EventInfo, 1000)
 
-	var igmap map[string]bool
+	igmap := make(map[string]bool)
 	for _, s := range ignore {
 		igmap[s] = true
 	}
