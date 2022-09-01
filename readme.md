@@ -30,6 +30,10 @@ Renaming is not supported at this time.
     "path": ".\\test\\source",
     "clients": [
         "127.0.0.1:57575"
+    ],
+    "ignore": [
+        "filename.txt",
+        ".zip"
     ]
 }
 ```
