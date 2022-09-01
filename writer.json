@@ -1,5 +1,5 @@
 {
     "role": "writer",
-    "path": "c:\\jason\\temp\\filesync",
+    "path": "c:\\temp\\destination",
     "bind": "127.0.0.1:57575"
 }

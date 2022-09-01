@@ -1,9 +1,8 @@
 {
     "role": "reader",
-    "path": "C:\\Users\\jason\\go\\src\\github.com\\jasontconnell\\filesync",
+    "path": "C:\\temp\\source",
     "clients": [
         "127.0.0.1:57575"
     ],
-    "schedule": "30s",
-    "notes": "write me"
+    "schedule": "30s"
 }
