@@ -1,9 +1,9 @@
 {
     "role": "reader",
-    "path": "c:\\inetpub\\wwwroot\\LPGADigitalEngagement\\Source\\LPGA.Website\\static\\leaderboard",
+    "path": "C:\\Users\\jason\\go\\src\\github.com\\jasontconnell\\filesync",
     "clients": [
-        "127.0.0.1:57575",
-        "127.0.0.1:67676"
+        "127.0.0.1:57575"
     ],
-    "schedule": "30s"
+    "schedule": "30s",
+    "notes": "write me"
 }

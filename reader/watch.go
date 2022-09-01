@@ -1,4 +1,4 @@
-package writer
+package reader
 
 import (
 	"fmt"
@@ -7,42 +7,31 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/fsnotify/fsnotify"
 	"github.com/jasontconnell/filesync/data"
+	"github.com/rjeczalik/notify"
 )
 
-func Listen(path string, files chan data.SyncFile) error {
-	w, err := fsnotify.NewWatcher()
+func Watch(path string, files chan data.SyncFile) {
+	ch := make(chan notify.EventInfo, 1000)
 
+	recpath := path + "\\.\\..."
+	err := notify.Watch(recpath, ch, notify.Write)
 	if err != nil {
-		return fmt.Errorf("Couldn't create watcher on %s. %w", path, err)
+		log.Fatalf("error creating watch %s", err.Error())
 	}
-	w.Add(path)
 
 	go func() {
 		for {
 			select {
-			case event, ok := <-w.Events:
-				if !ok {
-					return
+			case event := <-ch:
+				err := getFiles(path, event.Path(), files)
+				if err != nil {
+					log.Println("error occurred reading files", err)
 				}
-				if event.Op&fsnotify.Write == fsnotify.Write {
-					log.Println("modified file:", event.Name)
-					err := getFiles(path, event.Name, files)
-					if err != nil {
-						log.Println("error occurred reading files", err)
-					}
-				}
-			case err, ok := <-w.Errors:
-				if !ok {
-					return
-				}
-				log.Println("error:", err)
+			default:
 			}
 		}
 	}()
-
-	return nil
 }
 
 func getFiles(start, path string, files chan data.SyncFile) error {
