@@ -50,6 +50,8 @@ func (h ReaderHandler) Receive(w http.ResponseWriter, req *http.Request) {
 		}
 
 		writeFile(filepath.Join(h.BasePath, file.RelativePath), file.Contents, file.Type, file.Delete)
+	} else {
+		w.Write([]byte("post only. see <a href=\"https://github.com/jasontconnell/filesync\" target=\"_blank\">https://github.com/jasontconnell/filesync</a>"))
 	}
 }
 
