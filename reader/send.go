@@ -5,12 +5,11 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"time"
 
 	"github.com/jasontconnell/filesync/data"
 )
 
-func Send(clients []data.Client, duration time.Duration, files chan data.SyncFile) {
+func Send(clients []data.Client, files chan data.SyncFile) {
 	go func() {
 		for {
 			// select {

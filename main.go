@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"path/filepath"
-	"time"
 
 	"github.com/jasontconnell/filesync/conf"
 	"github.com/jasontconnell/filesync/data"
@@ -29,8 +28,6 @@ func main() {
 	}
 
 	if cfg.Role == "reader" {
-		sched, _ := time.ParseDuration(cfg.Schedule)
-
 		clients := []data.Client{}
 		for _, c := range cfg.Clients {
 			clients = append(clients, data.Client{Url: c})
@@ -39,7 +36,7 @@ func main() {
 		done := make(chan bool)
 		files := make(chan data.SyncFile)
 		reader.Watch(cfg.Path, files)
-		reader.Send(clients, sched, files)
+		reader.Send(clients, files)
 		<-done
 	} else {
 		h := writer.GetHandler(cfg.Path)
