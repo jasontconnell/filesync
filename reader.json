@@ -1,0 +1,9 @@
+{
+    "role": "reader",
+    "path": "c:\\inetpub\\wwwroot\\LPGADigitalEngagement\\Source\\LPGA.Website\\static\\leaderboard",
+    "clients": [
+        "127.0.0.1:57575",
+        "127.0.0.1:67676"
+    ],
+    "schedule": "30s"
+}
