@@ -7,6 +7,7 @@ type Config struct {
 	Path    string   `json:"path"`
 	Clients []string `json:"clients"`
 	Bind    string   `json:"bind"`
+	Ignore  []string `json:"ignore"`
 }
 
 func LoadConfig(filename string) (Config, error) {

@@ -5,14 +5,20 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/jasontconnell/filesync/data"
 	"github.com/rjeczalik/notify"
 )
 
-func Watch(path string, files chan data.SyncFile) {
+func Watch(path string, ignore []string, files chan data.SyncFile) {
 	ch := make(chan notify.EventInfo, 1000)
+
+	var igmap map[string]bool
+	for _, s := range ignore {
+		igmap[s] = true
+	}
 
 	recpath := path + "\\.\\..."
 	err := notify.Watch(recpath, ch, notify.All)
@@ -24,7 +30,7 @@ func Watch(path string, files chan data.SyncFile) {
 		for {
 			select {
 			case event := <-ch:
-				err := getFiles(path, event.Path(), event, files)
+				err := getFiles(path, event.Path(), event, igmap, files)
 				if err != nil {
 					log.Println("error occurred reading files", event.Path(), err)
 				}
@@ -34,10 +40,20 @@ func Watch(path string, files chan data.SyncFile) {
 	}()
 }
 
-func getFiles(start, path string, event notify.EventInfo, files chan data.SyncFile) error {
+func getFiles(start, path string, event notify.EventInfo, igmap map[string]bool, files chan data.SyncFile) error {
 	del := event.Event() == notify.Remove
 	rel := strings.Replace(path, start, "", -1)
 	file := data.SyncFile{RelativePath: rel, Delete: del, Type: "file"}
+
+	_, fn := filepath.Split(path)
+	if _, ok := igmap[fn]; ok {
+		return nil
+	}
+
+	ext := filepath.Ext(path)
+	if _, ok := igmap[ext]; ok {
+		return nil
+	}
 
 	stat, err := os.Stat(path)
 	if (err != nil || os.IsNotExist(err)) && !del {

@@ -35,7 +35,7 @@ func main() {
 
 		done := make(chan bool)
 		files := make(chan data.SyncFile)
-		reader.Watch(cfg.Path, files)
+		reader.Watch(cfg.Path, cfg.Ignore, files)
 		reader.Send(clients, files)
 		<-done
 	} else {
