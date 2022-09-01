@@ -1,10 +1,10 @@
 package reader
 
 import (
+	"encoding/base64"
 	"fmt"
 	"log"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/jasontconnell/filesync/data"
@@ -15,7 +15,7 @@ func Watch(path string, files chan data.SyncFile) {
 	ch := make(chan notify.EventInfo, 1000)
 
 	recpath := path + "\\.\\..."
-	err := notify.Watch(recpath, ch, notify.Write)
+	err := notify.Watch(recpath, ch, notify.All)
 	if err != nil {
 		log.Fatalf("error creating watch %s", err.Error())
 	}
@@ -24,9 +24,9 @@ func Watch(path string, files chan data.SyncFile) {
 		for {
 			select {
 			case event := <-ch:
-				err := getFiles(path, event.Path(), files)
+				err := getFiles(path, event.Path(), event, files)
 				if err != nil {
-					log.Println("error occurred reading files", err)
+					log.Println("error occurred reading files", event.Path(), err)
 				}
 			default:
 			}
@@ -34,37 +34,31 @@ func Watch(path string, files chan data.SyncFile) {
 	}()
 }
 
-func getFiles(start, path string, files chan data.SyncFile) error {
+func getFiles(start, path string, event notify.EventInfo, files chan data.SyncFile) error {
+	del := event.Event() == notify.Remove
+	rel := strings.Replace(path, start, "", -1)
+	file := data.SyncFile{RelativePath: rel, Delete: del, Type: "file"}
+
 	stat, err := os.Stat(path)
-
-	if err != nil || os.IsNotExist(err) {
+	if (err != nil || os.IsNotExist(err)) && !del {
 		return err
+	} else if del {
+		files <- file
+		return nil
 	}
 
-	var ferr error
 	if stat.IsDir() {
-		ferr = filepath.Walk(path, func(p string, info os.FileInfo, err error) error {
-			if info.IsDir() {
-				return nil
-			}
-
-			rel := strings.Replace(p, start, "", -1)
-			contents, err := read(p)
-			if err != nil {
-				return err
-			}
-			files <- data.SyncFile{RelativePath: rel, Contents: string(contents)}
-
-			return nil
-		})
+		file.Type = "directory"
 	} else {
-		rel := strings.Replace(path, start, "", -1)
 		contents, err := read(path)
-		files <- data.SyncFile{RelativePath: rel, Contents: string(contents)}
-		ferr = err
+		if err != nil {
+			return err
+		}
+		file.Contents = contents
 	}
+	files <- file
 
-	return ferr
+	return nil
 }
 
 func read(path string) (string, error) {
@@ -72,5 +66,6 @@ func read(path string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("couldn't read file %s. %w", path, err)
 	}
-	return string(contents), nil
+	b64contents := base64.StdEncoding.EncodeToString(contents)
+	return b64contents, nil
 }

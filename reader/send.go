@@ -5,13 +5,16 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/jasontconnell/filesync/data"
 )
 
-func Send(clients []data.Client, files chan data.SyncFile) {
+func Send(clients []data.Client, duration time.Duration, files chan data.SyncFile) {
 	go func() {
 		for {
+			// select {
+			// case <-time.After(duration):
 			select {
 			case f := <-files:
 				buf := bytes.NewBuffer(nil)
@@ -28,5 +31,6 @@ func Send(clients []data.Client, files chan data.SyncFile) {
 			default:
 			}
 		}
+		// }
 	}()
 }

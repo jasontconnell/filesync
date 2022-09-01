@@ -1,5 +1,5 @@
 {
     "role": "writer",
-    "path": "c:\\temp\\destination",
+    "path": ".\\test\\dest",
     "bind": "127.0.0.1:57575"
 }

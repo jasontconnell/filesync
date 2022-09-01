@@ -1,6 +1,7 @@
 package writer
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -48,14 +49,26 @@ func (h ReaderHandler) Receive(w http.ResponseWriter, req *http.Request) {
 			sendError(w, fmt.Errorf("couldn't read json %w", err))
 		}
 
-		writeFile(filepath.Join(h.BasePath, file.RelativePath), file.Contents)
+		writeFile(filepath.Join(h.BasePath, file.RelativePath), file.Contents, file.Type, file.Delete)
 	}
 }
 
-func writeFile(path, contents string) error {
+func writeFile(path, contents, ftype string, del bool) error {
+	if del {
+		return os.RemoveAll(path)
+	}
+
+	if ftype == "directory" {
+		return os.MkdirAll(path, os.ModePerm)
+	}
+
 	err := os.MkdirAll(filepath.Dir(path), os.ModePerm)
 	if err != nil {
 		return fmt.Errorf("couldn't create dir tree %s. %w", path, err)
 	}
-	return os.WriteFile(path, []byte(contents), os.ModePerm)
+	data, err := base64.StdEncoding.DecodeString(contents)
+	if err != nil {
+		return fmt.Errorf("couldn't decode base64 string %s. %w", contents, err)
+	}
+	return os.WriteFile(path, data, os.ModePerm)
 }

@@ -4,6 +4,7 @@ import (
 	"flag"
 	"log"
 	"net/http"
+	"path/filepath"
 	"time"
 
 	"github.com/jasontconnell/filesync/conf"
@@ -18,6 +19,10 @@ func main() {
 
 	cfg, err := conf.LoadConfig(*fn)
 
+	if !filepath.IsAbs(cfg.Path) {
+		cfg.Path, _ = filepath.Abs(cfg.Path)
+	}
+
 	if err != nil {
 		flag.PrintDefaults()
 		return
@@ -25,7 +30,6 @@ func main() {
 
 	if cfg.Role == "reader" {
 		sched, _ := time.ParseDuration(cfg.Schedule)
-		log.Println(sched)
 
 		clients := []data.Client{}
 		for _, c := range cfg.Clients {
@@ -35,7 +39,7 @@ func main() {
 		done := make(chan bool)
 		files := make(chan data.SyncFile)
 		reader.Watch(cfg.Path, files)
-		reader.Send(clients, files)
+		reader.Send(clients, sched, files)
 		<-done
 	} else {
 		h := writer.GetHandler(cfg.Path)

@@ -1,0 +1,3 @@
+this is text
+
+new test with base64 encoding

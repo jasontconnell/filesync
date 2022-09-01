@@ -1,8 +1,8 @@
 {
     "role": "reader",
-    "path": "C:\\temp\\source",
+    "path": ".\\test\\source",
     "clients": [
         "127.0.0.1:57575"
     ],
-    "schedule": "30s"
+    "schedule": "15s"
 }
