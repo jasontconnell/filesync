@@ -7,40 +7,65 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/jasontconnell/filesync/data"
 	"github.com/rjeczalik/notify"
 )
 
-func Watch(path string, ignore []string, files chan data.SyncFile) {
-	ch := make(chan notify.EventInfo, 1000)
+func Watch(path string, schedule time.Duration, ignore []string, files, retry chan data.SyncFile) {
 
 	igmap := make(map[string]bool)
 	for _, s := range ignore {
 		igmap[s] = true
 	}
 
+	go loopWatch(path, igmap, files, retry)
+	go loopRetry(path, files, retry)
+}
+
+func loopWatch(path string, igmap map[string]bool, files, retry chan data.SyncFile) {
+	ch := make(chan notify.EventInfo, 1000)
 	recpath := path + "\\.\\..."
 	err := notify.Watch(recpath, ch, notify.All)
 	if err != nil {
 		log.Fatalf("error creating watch %s", err.Error())
 	}
+	defer notify.Stop(ch)
 
-	go func() {
-		for {
-			select {
-			case event := <-ch:
-				err := getFiles(path, event.Path(), event, igmap, files)
-				if err != nil {
-					log.Println("error occurred reading files", event.Path(), err)
-				}
-			default:
+	for {
+		select {
+		case event := <-ch:
+			err := getFiles(path, event.Path(), event, igmap, files, retry)
+			log.Println("event", path, event.Event())
+			if err != nil {
+				log.Println("error occurred reading files", event.Path(), err)
 			}
+		default:
 		}
-	}()
+	}
 }
 
-func getFiles(start, path string, event notify.EventInfo, igmap map[string]bool, files chan data.SyncFile) error {
+func loopRetry(path string, files, retry chan data.SyncFile) {
+	for {
+		select {
+		case ret := <-retry:
+			log.Println("retrying", ret.RelativePath)
+			contents, err := read(filepath.Join(path, ret.RelativePath))
+			if err != nil {
+				log.Println("requeueing retry", ret.RelativePath)
+				time.Sleep(time.Second * 5)
+				retry <- ret
+				continue
+			}
+			ret.Contents = contents
+			files <- ret
+		default:
+		}
+	}
+}
+
+func getFiles(start, path string, event notify.EventInfo, igmap map[string]bool, files, retry chan data.SyncFile) error {
 	del := event.Event() == notify.Remove
 	rel := strings.Replace(path, start, "", -1)
 	file := data.SyncFile{RelativePath: rel, Delete: del, Type: "file"}
@@ -55,6 +80,8 @@ func getFiles(start, path string, event notify.EventInfo, igmap map[string]bool,
 		return nil
 	}
 
+	log.Println("file event raised", path, event.Event())
+
 	stat, err := os.Stat(path)
 	if (err != nil || os.IsNotExist(err)) && !del {
 		return err
@@ -68,6 +95,7 @@ func getFiles(start, path string, event notify.EventInfo, igmap map[string]bool,
 	} else {
 		contents, err := read(path)
 		if err != nil {
+			retry <- file
 			return err
 		}
 		file.Contents = contents

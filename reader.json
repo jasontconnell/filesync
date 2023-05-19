@@ -4,5 +4,5 @@
     "clients": [
         "127.0.0.1:57575"
     ],
-    "schedule": "15s"
+    "schedule": "5s"
 }

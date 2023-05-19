@@ -13,7 +13,7 @@ import (
 	"github.com/jasontconnell/filesync/data"
 )
 
-type ReaderHandler struct {
+type WriterHandler struct {
 	http.Handler
 	BasePath string
 }
@@ -21,7 +21,7 @@ type ReaderHandler struct {
 func GetHandler(path string) http.Handler {
 	os.MkdirAll(path, os.ModePerm)
 
-	h := ReaderHandler{BasePath: path}
+	h := WriterHandler{BasePath: path}
 
 	m := mux.NewRouter()
 	m.HandleFunc("/receive", h.Receive)
@@ -41,15 +41,20 @@ func sendError(w http.ResponseWriter, err error) {
 	w.Write([]byte(err.Error()))
 }
 
-func (h ReaderHandler) Receive(w http.ResponseWriter, req *http.Request) {
+func (h WriterHandler) Receive(w http.ResponseWriter, req *http.Request) {
 	if req.Method == http.MethodPost {
 		var file data.SyncFile
 		err := readJson(req.Body, &file)
 		if err != nil {
 			sendError(w, fmt.Errorf("couldn't read json %w", err))
+			return
 		}
 
-		writeFile(filepath.Join(h.BasePath, file.RelativePath), file.Contents, file.Type, file.Delete)
+		err = writeFile(filepath.Join(h.BasePath, file.RelativePath), file.Contents, file.Type, file.Delete)
+		if err != nil {
+			sendError(w, fmt.Errorf("couldn't write file %s. %w", file.RelativePath, err))
+			return
+		}
 	} else {
 		w.Write([]byte("post only. see <a href=\"https://github.com/jasontconnell/filesync\" target=\"_blank\">https://github.com/jasontconnell/filesync</a>"))
 	}

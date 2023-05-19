@@ -2,9 +2,11 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
 	"path/filepath"
+	"time"
 
 	"github.com/jasontconnell/filesync/conf"
 	"github.com/jasontconnell/filesync/data"
@@ -23,8 +25,14 @@ func main() {
 	}
 
 	if err != nil {
-		flag.PrintDefaults()
+		log.Println(err)
 		return
+	}
+
+	sched, err := time.ParseDuration(cfg.Schedule)
+	if err != nil {
+		sched = time.Second * 60
+		log.Println("parsing duration", err, sched)
 	}
 
 	if cfg.Role == "reader" {
@@ -35,8 +43,18 @@ func main() {
 
 		done := make(chan bool)
 		files := make(chan data.SyncFile)
-		reader.Watch(cfg.Path, cfg.Ignore, files)
+		retry := make(chan data.SyncFile)
+		reader.WatchDumb(cfg.Path, sched, cfg.Ignore, files, retry)
 		reader.Send(clients, files)
+
+		t := time.NewTicker(2 * time.Second)
+		go func() {
+			for tick := range t.C {
+				fmt.Printf("\r%vClients: %d. File queue: %d. Retry queue: %d.\t\t",
+					tick.Format("15:04:05"), len(cfg.Clients), len(files), len(retry))
+			}
+		}()
+
 		<-done
 	} else {
 		h := writer.GetHandler(cfg.Path)
